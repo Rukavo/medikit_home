@@ -45,4 +45,10 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
-        run: gh release create "$GITHUB_REF_NAME" release/* --verify-tag --title "Medikit Home $GITHUB_REF_NAME · Windows" --notes-file RELEASE_NOTES.md
+        run: |
+          set -euo pipefail
+          if gh release view "$GITHUB_REF_NAME" >/dev/null 2>&1; then
+            echo "Release $GITHUB_REF_NAME already exists; keeping its published assets unchanged."
+          else
+            gh release create "$GITHUB_REF_NAME" release/* --verify-tag --title "Medikit Home $GITHUB_REF_NAME · Windows" --notes-file RELEASE_NOTES.md
+          fi
