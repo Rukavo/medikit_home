@@ -1,0 +1,144 @@
+
+@page "/"
+<PageTitle>@L.T("Medikit Home · Tu botiquín")</PageTitle>
+<div class="shell" lang="@L.Code">
+    <aside class="sidebar">
+        <div class="brand"><img class="brand-logo" src="logo.svg" alt="@L.T("Botiquín con cruz azul")"/><div>Medi<span>kit Home</span><small>@L.T("TU BOTIQUÍN PERSONAL")</small></div></div>
+        <div class="nav-caption">@L.T("MI ESPACIO")</div>
+        <nav aria-label="@L.T("Navegación principal")">
+            <button class="nav-item @(view == "inventory" ? "active" : "")" @onclick='() => Navigate("inventory")'><Icon Name="box"/><span>@L.T("Mi botiquín")</span><b>@meds.Count</b></button>
+            <button class="nav-item @(view == "treatments" ? "active" : "")" @onclick='() => Navigate("treatments")'><Icon Name="calendar"/><span>@L.T("Tratamientos")</span></button>
+            <button class="nav-item @(view == "categories" ? "active" : "")" @onclick='() => Navigate("categories")'><Icon Name="tag"/><span>@L.T("Categorías")</span></button>
+            <button class="nav-item @(view == "data" ? "active" : "")" @onclick='() => Navigate("data")'><Icon Name="folder"/><span>@L.T("Importar y copias")</span></button>
+        </nav>
+        <div class="sidebar-categories"><div class="nav-caption">@L.T("MIS CATEGORÍAS")<button aria-label="@L.T("Crear categoría")" class="icon-button" @onclick="() => OpenCategory()"><Icon Name="plus" Size="16"/></button></div>
+            @foreach (var cat in categories)
+            {
+                <button class="category-link @(category == cat ? "chosen" : "")" @onclick='() => { category = category == cat ? "" : cat; Navigate("inventory"); }'><i></i><span>@cat</span><small>@meds.Count(m => m.Categories.Contains(cat, StringComparer.OrdinalIgnoreCase))</small></button>
+            }
+        </div>
+        <div class="local-note"><Icon Name="shield" Size="24"/><strong>@L.T("Siempre a mano.")</strong><p>@L.T("Tu botiquín se guarda en este dispositivo y funciona sin conexión.")</p><span><i></i> @L.T("Almacenamiento local")</span></div>
+        <div class="sidebar-footer"><span class="avatar">H</span><div>@L.T("Mi hogar")<small>Medikit Home 1.2</small></div></div>
+    </aside>
+    <div class="workspace">
+        <header class="topbar"><span><img class="topbar-logo" src="logo.svg" alt="Medikit Home"/>@L.T("Mi hogar") <span class="slash">/</span> <strong>@(view == "inventory" ? L.T("Mi botiquín") : view == "treatments" ? L.T("Tratamientos") : view == "categories" ? L.T("Categorías") : L.T("Mis datos"))</strong></span><div class="topbar-right"><select class="language-select" aria-label="@L.T("Idioma")" title="@L.T("Idioma")" value="@L.Code" @onchange="ChangeLanguage"><option value="es">ES</option><option value="en">EN</option></select><span class="offline-dot"></span> @L.T("Sin conexión necesaria") <span class="avatar small">H</span></div></header>
+        <main>
+            <div class="page-heading"><div><div class="eyebrow">@L.T("CUIDAR EMPIEZA POR ORGANIZAR")</div><h1>@Title<span class="heading-dot">.</span></h1><p>@Subtitle</p></div>@if (view is "inventory" or "data") { <div class="heading-actions"><button class="button secondary" @onclick="PickCsv" disabled="@busy"><Icon Name="upload"/> @L.T("Importar CSV")</button><button class="button primary" @onclick="() => Edit()" disabled="@(busy || loading)"><Icon Name="plus"/> @L.T("Añadir medicamento")</button></div> }</div>
+            @if (error.Length > 0) { <div class="notice danger" role="alert"><Icon Name="alert"/><span>@error</span><button class="icon-button" aria-label="@L.T("Cerrar error")" @onclick='() => error = ""'><Icon Name="close" Size="16"/></button></div> }
+            @if (message.Length > 0) { <div class="notice success" role="status"><Icon Name="check"/><span>@message</span><button class="icon-button" aria-label="@L.T("Cerrar aviso")" @onclick='() => message = ""'><Icon Name="close" Size="16"/></button></div> }
+            @if (loading) { <div class="empty"><span class="loader"></span><h2>@L.T("Abriendo tu botiquín…")</h2></div> }
+            else if (view == "inventory")
+            {
+                <div class="stats">
+                    <button class="stat stat-inventory" @onclick='() => SetFilter("all")'><span class="stat-icon mint"><Icon Name="box" Size="23"/></span><div><span>@L.T("Total en el botiquín")</span><strong>@meds.Count</strong><small>@L.T("medicamentos y productos")</small></div></button>
+                    <button class="stat stat-treatment" @onclick='() => SetFilter("active")'><span class="stat-icon blue"><Icon Name="calendar" Size="23"/></span><div><span>@L.T("Tratamientos activos")</span><strong>@meds.Count(m => m.Active)</strong><small>@L.T("pautas registradas")</small></div></button>
+                    <button class="stat stat-soon" @onclick='() => SetFilter("soon")'><span class="stat-icon sand"><Icon Name="clock" Size="23"/></span><div><span>@L.T("Caducan pronto")</span><strong>@meds.Count(m => m.IsSoon(Today))</strong><small>@L.T("en los próximos 90 días")</small></div></button>
+                    <button class="stat stat-expired" @onclick='() => SetFilter("expired")'><span class="stat-icon rose"><Icon Name="alert" Size="23"/></span><div><span>@L.T("Caducados")</span><strong class="red-text">@meds.Count(m => m.IsExpired(Today))</strong><small>@L.T("pendientes de retirar")</small></div></button>
+                </div>
+                <section class="inventory" aria-label="@L.T("Lista de medicamentos")">
+                    <div class="inventory-title"><h2>@L.T("Medicamentos") <span>@Filtered.Count()</span></h2><div class="view-switch"><button aria-label="@L.T("Vista de lista")" class="@(!cards ? "chosen" : "")" @onclick="() => cards = false"><Icon Name="list" Size="18"/></button><button aria-label="@L.T("Vista de tarjetas")" class="@(cards ? "chosen" : "")" @onclick="() => cards = true"><Icon Name="grid" Size="18"/></button></div></div>
+                    <div class="toolbar"><label class="search"><Icon Name="search"/><input aria-label="@L.T("Buscar medicamento")" placeholder="@L.T("Buscar por nombre, uso o categoría…")" @bind="query" @bind:event="oninput"/></label><select aria-label="@L.T("Filtrar por categoría")" @bind="category"><option value="">@L.T("Todas las categorías")</option>@foreach (var cat in categories) { <option value="@cat">@cat</option> }</select><select aria-label="@L.T("Ordenar medicamentos")" @bind="sort"><option value="name">@L.T("Nombre: A–Z")</option><option value="expiry">@L.T("Caducidad: más próxima")</option><option value="recent">@L.T("Últimos añadidos")</option></select></div>
+                    <div class="filter-tabs" aria-label="@L.T("Filtrar por estado")">
+                        @foreach (var item in new[] { ("all", L.T("Todos")), ("stock", L.T("En stock")), ("empty", L.T("Agotados")), ("expired", L.T("Caducados")), ("soon", L.T("Caducan pronto")) })
+                        { <button class="filter-@item.Item1 @(filter == item.Item1 ? "active" : "")" @onclick="() => filter = item.Item1">@item.Item2</button> }
+                        @if (filter == "active") { <button class="active" @onclick='() => filter = "all"'>@L.T("Tratamiento activo ×")</button> }
+                    </div>
+                    @if (!Filtered.Any()) { <div class="empty"><Icon Name="search" Size="38"/><h3>@L.T("No hay medicamentos aquí")</h3><p>@L.T("Prueba otra búsqueda o añade un medicamento.")</p><button class="button secondary" @onclick='() => { query = ""; category = ""; filter = "all"; }'>@L.T("Restablecer filtros")</button></div> }
+                    else
+                    {
+                        <div class="med-list @(cards ? "card-view" : "")">
+                            <div class="table-head"><span>@L.T("MEDICAMENTO / USO")</span><span>@L.T("CATEGORÍA")</span><span>@L.T("CADUCIDAD")</span><span>@L.T("STOCK")</span><span></span></div>
+                            @foreach (var med in Filtered)
+                            {
+                                <article class="med-row @(med.IsExpired(Today) ? "expired" : med.IsSoon(Today) ? "expiring" : med.Active ? "under-treatment" : "") @(!med.InStock ? "no-stock" : "")" @key="med.Id">
+                                    <button class="med-main" @onclick="() => selected = med"><span class="med-symbol @(med.ProductType == "medicamento" ? "" : "other")"><Icon Name="@(med.ProductType == "medicamento" ? "pill" : "box")" Size="24"/></span><span class="med-copy"><strong>@med.Name <span class="dose">@med.Dose</span></strong><span class="description">@(med.Description.Length > 0 ? med.Description : L.T("Añade una descripción de uso"))</span><span class="med-meta">@if (med.Prescription == "si") { <span>℞ @L.T("Con receta")</span> } @if (med.Active) { <span class="active-treatment"><Icon Name="calendar" Size="12"/> @L.T("Tratamiento activo")</span> }</span></span></button>
+                                    <div class="med-categories">@foreach (var cat in med.Categories.Take(2)) { <span class="tag">@cat</span> } @if (med.Categories.Count == 0) { <span class="muted">@L.T("Sin categoría")</span> } @if (med.Categories.Count > 2) { <span class="tag">+@(med.Categories.Count - 2)</span> }</div>
+                                    <div class="med-expiry"><strong>@L.Date(med.Expiry)</strong><span class="status @StatusClass(med)"><i></i>@Status(med)</span></div>
+                                    <button disabled="@busy" class="stock @(med.InStock ? "in-stock" : "out-stock")" title="@L.T("Cambiar disponibilidad")" @onclick="() => ToggleStock(med)"><i></i>@(med.InStock ? L.T("Disponible") : L.T("Agotado"))</button>
+                                    <button class="icon-button row-open" aria-label="@L.Format("Ver ficha de {0}", med.Name)" @onclick="() => selected = med"><Icon Name="arrow" Size="18"/></button>
+                                </article>
+                            }
+                        </div>
+                        <div class="list-footer"><span>@L.Format("{0} de {1} productos", Filtered.Count(), meds.Count)</span><span><Icon Name="shield" Size="14"/> @L.T("Guardado en tu dispositivo")</span></div>
+                    }
+                </section>
+                <p class="medical-note">@L.T("Las descripciones ayudan a identificar el uso. Consulta el prospecto y sigue la pauta de tu profesional sanitario.")</p>
+            }
+            else if (view == "treatments")
+            {
+                <div class="section-toolbar"><div><h2>@L.T("Agenda de hoy")</h2><p>@Today.ToString((L.Code == "es" ? "dddd, dd 'de' MMMM" : "dddd, dd MMMM"), CultureInfo.GetCultureInfo(L.CultureName))</p></div><select aria-label="@L.T("Categoría de tratamientos")" @bind="category"><option value="">@L.T("Todas las categorías")</option>@foreach (var cat in categories) { <option>@cat</option> }</select></div>
+                @if (!Agenda.Any()) { <div class="empty panel"><Icon Name="calendar" Size="40"/><h2>@L.T("No hay tomas programadas para hoy")</h2><p>@L.T("Abre un medicamento y registra la pauta que te hayan indicado.")</p><button class="button secondary" @onclick='() => Navigate("inventory")'>@L.T("Ir al botiquín")</button></div> }
+                @foreach (var item in Agenda)
+                {
+                    <button class="agenda-row panel @(item.Med.IsExpired(Today) ? "expired" : "")" @onclick="() => selected = item.Med"><span class="agenda-time">@item.Time</span><span><strong>@item.Med.Name</strong><small>@item.Med.Amount · @item.Med.Dose</small></span><span class="status @StatusClass(item.Med)">@Status(item.Med)</span>@if (!item.Med.InStock) { <span class="status amber">@L.T("Agotado")</span> }<Icon Name="arrow"/></button>
+                }
+                <h2 class="section-heading">@L.T("Pautas activas") <span class="muted">@meds.Count(m => m.Active)</span></h2>
+                @foreach (var med in meds.Where(m => m.Active && (category.Length == 0 || m.Categories.Contains(category, StringComparer.OrdinalIgnoreCase))))
+                { <div class="regimen panel"><div><h3>@med.Name <span class="dose">@med.Dose</span></h3><p>@med.Amount · @L.Format("Cada {0} día(s)", med.PeriodDays) · @string.Join(", ", med.Times)</p><small>@L.T("Desde") @L.Date(med.StartDate) @(med.EndDate.Length > 0 ? L.T("hasta") + " " + L.Date(med.EndDate) : L.T("· Sin fecha de fin"))</small></div><button class="button secondary" @onclick="() => Edit(med)">@L.T("Editar pauta")</button><button class="text-button" disabled="@busy" @onclick="() => ToggleActive(med)">@L.T("Desactivar")</button></div> }
+            }
+            else if (view == "categories")
+            {
+                <div class="section-toolbar"><h2>@L.Format("{0} categorías", categories.Count)</h2><button class="button primary" @onclick="() => OpenCategory()"><Icon Name="plus"/> @L.T("Crear categoría")</button></div>
+                <div class="category-grid">@foreach (var cat in categories) { <article class="category-card panel"><span class="stat-icon mint"><Icon Name="tag" Size="24"/></span><button class="icon-button category-edit" aria-label="@L.Format("Editar categoría {0}", cat)" @onclick="() => OpenCategory(cat)"><Icon Name="edit" Size="18"/></button><h3>@cat</h3><p>@meds.Count(m => m.Categories.Contains(cat, StringComparer.OrdinalIgnoreCase)) @L.T("productos")</p><button class="text-button" @onclick='() => { category = cat; Navigate("inventory"); }'>@L.T("Ver medicamentos") <Icon Name="arrow" Size="16"/></button></article> }</div>
+                @if (categories.Count == 0) { <div class="empty panel"><Icon Name="tag" Size="40"/><h2>@L.T("Crea tu primera categoría")</h2><p>@L.T("Por ejemplo, «Botiquín de viaje» o «Uso habitual».")</p></div> }
+            }
+            else if (view == "data")
+            {
+                <div class="data-grid"><section class="panel data-card"><span class="stat-icon mint"><Icon Name="upload" Size="25"/></span><h2>@L.T("Trae tu botiquín")</h2><p>@L.T("Importa un CSV y revisa sus datos antes de añadirlos. Los medicamentos existentes se conservan y los duplicados se omiten.")</p><button class="button primary" @onclick="PickCsv" disabled="@busy">@L.T("Seleccionar CSV")</button><button class="text-button" @onclick="() => ExportCsv(true)" disabled="@busy"><Icon Name="download" Size="16"/> @L.T("Descargar plantilla")</button></section><section class="panel data-card"><span class="stat-icon blue"><Icon Name="download" Size="25"/></span><h2>@L.T("Llévate tus datos")</h2><p>@L.T("Exporta todos los medicamentos y pautas a CSV, o crea una copia JSON que incluye también las categorías vacías.")</p><button class="button secondary" @onclick="ExportBackup" disabled="@busy">@L.T("Crear copia completa")</button><button class="text-button" @onclick="() => ExportCsv()" disabled="@busy">@L.T("Exportar medicamentos a CSV")</button></section><section class="panel data-card"><span class="stat-icon sand"><Icon Name="folder" Size="25"/></span><h2>@L.T("Recupera una copia")</h2><p>@L.T("Restaura una copia JSON de Medikit Home para recuperar tu botiquín o trasladarlo a otro dispositivo. Sustituirá los datos actuales tras tu confirmación.")</p><button class="button secondary" @onclick="PickBackup" disabled="@busy">@L.T("Seleccionar copia JSON")</button></section></div>
+                <div class="privacy-panel panel"><Icon Name="shield" Size="28"/><div><h3>@L.T("Local y sin cuenta")</h3><p>@L.T("Los datos se guardan en una base SQLite privada de la aplicación. Cada dispositivo tiene su propio botiquín; puedes moverlo con una copia JSON. No hay sincronización automática. Guarda una copia antes de desinstalar.")</p></div></div>
+            }
+        </main>
+    </div>
+</div>
+
+@if (selected != null && modal.Length == 0)
+{
+    var med = selected;
+    <div class="drawer-backdrop" @onclick="() => selected = null"></div><aside class="drawer" role="dialog" aria-modal="true" aria-label="@L.Format("Ficha de {0}", med.Name)" tabindex="-1" @onkeydown='e => { if (e.Key == "Escape") selected = null; }'>
+        <div class="drawer-top"><span>@L.T("FICHA DEL MEDICAMENTO")</span><button class="icon-button" aria-label="@L.T("Cerrar ficha")" @onclick="() => selected = null"><Icon Name="close"/></button></div>
+        <span class="large-pill"><Icon Name="pill" Size="40"/></span><h2>@med.Name</h2><p class="drawer-dose">@med.Dose</p><div class="detail-badges"><span class="status @StatusClass(med)">@Status(med)</span><span class="tag">@Rx(med.Prescription)</span></div>
+        <div class="detail-section"><h3>@L.T("¿Para qué se utiliza?")</h3><p>@(med.Description.Length > 0 ? med.Description : L.T("Todavía no hay una descripción."))</p>@if (med.SourceUrl.Length > 0) { <button class="source-link" @onclick="() => OpenSource(med)">@L.T("Consultar fuente") <Icon Name="arrow" Size="14"/></button> }@if (med.ReviewedOn.Length > 0) { <small class="muted"> @L.T("Consulta:") @L.Date(med.ReviewedOn)</small> }</div>
+        @if (med.ReviewNotes.Length > 0) { <div class="notice amber"><Icon Name="info"/><span>@med.ReviewNotes</span></div> }
+        <div class="detail-grid"><div><small>@L.T("CADUCIDAD")</small><strong class="@(med.IsExpired(Today) ? "red-text" : "")">@L.Date(med.Expiry)</strong>@if (med.Expiry.Length == 7) { <small>@L.T("Hasta el último día del mes")</small> }</div><div><small>@L.T("DISPONIBILIDAD")</small><button class="stock @(med.InStock ? "in-stock" : "out-stock")" disabled="@busy" @onclick="() => ToggleStock(med)"><i></i>@(med.InStock ? L.T("Disponible") : L.T("Agotado"))</button></div><div><small>@L.T("CANTIDAD DEL ENVASE")</small><strong>@(med.PackageQuantity.Length > 0 ? med.PackageQuantity : L.T("Sin indicar"))</strong></div><div><small>@L.T("TIPO DE PRODUCTO")</small><strong>@L.ProductType(med.ProductType)</strong></div></div>
+        <div class="detail-section"><h3>@L.T("Recordatorio de compra")</h3><p>@L.Date(med.PurchaseReminder)</p></div><div class="detail-section"><h3>@L.T("Categorías")</h3><div class="detail-badges">@foreach (var cat in med.Categories) { <span class="tag">@cat</span> }@if (med.Categories.Count == 0) { <span class="muted">@L.T("Sin categoría")</span> }</div></div>
+        <div class="detail-section treatment-section"><h3>@L.T(med.Active ? "Tratamiento activo" : "Tratamiento no activo")</h3>@if (med.Active) { <p><strong>@med.Amount</strong> @L.Format("cada {0} día(s)", med.PeriodDays)</p><div class="times">@foreach (var time in med.Times) { <span><Icon Name="clock" Size="15"/> @time</span> }</div><p class="muted">@L.T("Desde") @L.Date(med.StartDate) @(med.EndDate.Length > 0 ? L.T("hasta") + " " + L.Date(med.EndDate) : "")</p> } else { <p class="muted">@L.T("No hay una pauta activa para este producto.")</p> }</div>
+        @if (med.Notes.Length > 0) { <div class="detail-section"><h3>@L.T("Notas")</h3><p class="preserve-lines">@med.Notes</p></div> }
+        <p class="medical-note">@L.T("Sigue el prospecto y las indicaciones de tu profesional sanitario.")</p><div class="drawer-actions"><button class="button primary" @onclick="() => Edit(med)"><Icon Name="edit"/> @L.T("Editar medicamento")</button><button class="icon-button danger-button" aria-label="@L.T("Eliminar medicamento")" @onclick='() => { deleting = med; modal = "delete"; }'><Icon Name="trash"/></button></div>
+    </aside>
+}
+
+@if (modal.Length > 0)
+{
+    <div class="modal-backdrop" @onclick="CloseModal"></div><section class="modal @(modal == "edit" ? "wide-modal" : "")" role="dialog" aria-modal="true" aria-labelledby="modal-title" @onkeydown='e => { if (e.Key == "Escape") CloseModal(); }'>
+        <div class="modal-header"><div><small>MEDIKIT HOME</small><h2 id="modal-title">@(modal switch { "edit" => meds.Any(m => m.Id == draft?.Id) ? L.T("Editar medicamento") : L.T("Añadir medicamento"), "category" => originalCategory.Length > 0 ? L.T("Editar categoría") : L.T("Nueva categoría"), "import" => L.T("Revisar importación"), "restore" => L.T("Restaurar botiquín"), _ => L.T("Eliminar medicamento") })</h2></div><button class="icon-button" aria-label="@L.T("Cerrar ventana")" disabled="@busy" @onclick="CloseModal"><Icon Name="close"/></button></div>
+        <div class="modal-body">
+            @if (formError.Length > 0) { <div class="notice danger" role="alert">@formError</div> }
+            @if (modal == "edit" && draft != null)
+            {
+                <form id="med-form" @onsubmit="SaveMedication" @onsubmit:preventDefault>
+                    <div class="form-grid"><label class="full">@L.T("Nombre del medicamento *")<input autofocus maxlength="200" required @bind="draft.Name" placeholder="@L.T("Ej. Omeprazol")"/></label><label>@L.T("Dosis o concentración")<input @bind="draft.Dose" placeholder="@L.T("Ej. 20 mg")"/></label><label>@L.T("Cantidad del envase")<input @bind="draft.PackageQuantity" placeholder="@L.T("Ej. 28 cápsulas")"/></label><label>@L.T("Caducidad")<input @bind="draft.Expiry" placeholder="@L.T("AAAA-MM o AAAA-MM-DD")"/><small>@L.T("Si solo conoces mes y año, usa AAAA-MM.")</small></label><label>@L.T("Recordatorio de compra")<input @bind="draft.PurchaseReminder" placeholder="@L.T("AAAA-MM-DD")"/></label><label>@L.T("Receta médica")<select @bind="draft.Prescription"><option value="desconocido">@L.T("Por verificar")</option><option value="si">@L.T("Con receta")</option><option value="no">@L.T("Sin receta")</option><option value="no_aplica">@L.T("No aplica")</option></select></label><label class="full">@L.T("Descripción de uso")<textarea rows="3" @bind="draft.Description" placeholder="@L.T("Un recordatorio breve de para qué se utiliza")"></textarea></label><CategoryPicker Categories="categories" @bind-Selected="draft.Categories"/><label>@L.T("Tipo de producto")<select @bind="draft.ProductType"><option value="medicamento">@L.T("Medicamento")</option><option value="cosmetico">@L.T("Cosmético / higiene")</option><option value="biocida">@L.T("Biocida / repelente")</option><option value="alimento">@L.T("Alimento / rehidratación")</option><option value="otro">@L.T("Otro")</option></select></label><label class="checkbox-label full"><input type="checkbox" @bind="draft.InStock"/> @L.T("Disponible en el botiquín") <small>@L.T("Desmárcalo si está agotado.")</small></label></div>
+                    <div class="treatment-form"><label class="checkbox-label"><input type="checkbox" @bind="draft.Active"/><strong>@L.T("Estoy usando este medicamento")</strong></label><p>@L.T("Registra únicamente la pauta que te hayan indicado.")</p>@if (draft.Active) { <div class="form-grid"><label>@L.T("Cantidad por toma *")<input required @bind="draft.Amount" placeholder="@L.T("Ej. 1 comprimido")"/></label><label>@L.T("Repetir cada (días) *")<input type="number" min="1" max="365" required @bind="draft.PeriodDays"/><small>@L.T("1 = todos los días; 2 = días alternos.")</small></label><label class="full">@L.T("Horarios de toma *")<input required @bind="draftTimes" placeholder="08:00 | 16:00 | 23:00"/><small>@L.T("Horas en formato de 24 h, separadas por |.")</small></label><label>@L.T("Fecha de inicio *")<input required @bind="draft.StartDate" placeholder="@L.T("AAAA-MM-DD")"/></label><label>@L.T("Fecha de fin")<input @bind="draft.EndDate" placeholder="@L.T("AAAA-MM-DD (opcional)")"/></label></div> }</div>
+                    <details class="extra-fields"><summary>@L.T("Notas y fuente de información")</summary><div class="form-grid"><label class="full">@L.T("Notas")<textarea rows="2" @bind="draft.Notes"></textarea></label><label class="full">@L.T("Fuente del uso (HTTPS)")<input type="url" @bind="draft.SourceUrl" placeholder="https://cima.aemps.es/…"/></label><label>@L.T("Fecha de consulta")<input @bind="draft.ReviewedOn" placeholder="@L.T("AAAA-MM-DD")"/></label><label>@L.T("Aspectos por revisar")<input @bind="draft.ReviewNotes"/></label></div></details>
+                </form>
+            }
+            else if (modal == "category")
+            { <form id="category-form" @onsubmit="SaveCategory" @onsubmit:preventDefault><label>@L.T("Nombre de la categoría")<input autofocus maxlength="80" required @bind="categoryName" placeholder="@L.T("Tu categoría aquí")"/></label><p class="muted">@L.T("Un medicamento puede pertenecer a varias categorías.")</p></form>@if (originalCategory.Length > 0) { <button class="text-button red-text" @onclick='() => modal = "delete-category"'><Icon Name="trash" Size="16"/> @L.T("Eliminar categoría")</button> } }
+            else if (modal == "delete-category") { <p>@L.T("¿Eliminar") <strong>@originalCategory</strong> @L.T("de todos los medicamentos? Las fichas de los medicamentos se conservarán.")</p> }
+            else if (modal == "delete") { <p>@L.T("¿Eliminar") <strong>@deleting?.Name</strong> @L.T("del botiquín? También se eliminará su pauta de tratamiento.")</p> }
+            else if (modal == "import" && batch != null)
+            {
+                <p><strong>@batch.Medications.Count @L.T("registros válidos")</strong> @L.Format("· {0} nuevos · {1} duplicados que se omitirán.", NewCount, batch.Medications.Count - NewCount)</p>
+                @if (batch.Errors.Count > 0) { <div class="notice danger"><span>@L.Format("No se guardará ningún registro hasta corregir los {0} errores.", batch.Errors.Count)</span></div><ul class="import-errors">@foreach (var item in batch.Errors) { <li>@L.Error(item)</li> }</ul> }
+                @if (batch.Warnings.Count > 0) { <details open><summary>@L.Format("Observaciones ({0})", batch.Warnings.Count)</summary><ul>@foreach (var item in batch.Warnings) { <li>@L.Error(item)</li> }</ul></details> }
+                <div class="import-preview">@foreach (var med in batch.Medications.Take(8)) { <div><strong>@med.Name</strong><span>@med.Dose</span><span>@L.Date(med.Expiry)</span></div> }@if (batch.Medications.Count > 8) { <p class="muted">@L.Format("Y {0} registros más.", batch.Medications.Count - 8)</p> }</div>
+            }
+            else if (modal == "restore" && restore != null) { <div class="notice amber"><Icon Name="alert"/><span>@L.T("Esta acción sustituirá el botiquín actual.")</span></div><p>@L.T("La copia contiene") <strong>@L.Format("{0} productos", restore.Medications.Count)</strong> @L.T("y") <strong>@L.Format("{0} categorías", restore.Categories.Count)</strong>.</p><p>@L.T("Fecha de la copia:") @restore.CreatedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")</p><p class="muted">@L.T("Guarda antes una copia de los datos actuales si quieres conservarlos.")</p> }
+        </div>
+        <div class="modal-footer"><button class="button secondary" disabled="@busy" @onclick="CloseModal">@L.T("Cancelar")</button>@if (modal == "edit") { <button class="button primary" form="med-form" type="submit" disabled="@busy">@(busy ? L.T("Guardando…") : L.T("Guardar medicamento"))</button> } else if (modal == "category") { <button class="button primary" form="category-form" type="submit" disabled="@busy">@L.T("Guardar categoría")</button> } else if (modal == "import") { <button class="button primary" disabled="@(busy || batch == null || batch.Errors.Count > 0 || NewCount == 0)" @onclick="ConfirmImport">@L.Format("Importar {0} productos", NewCount)</button> } else if (modal == "restore") { <button class="button destructive" disabled="@busy" @onclick="ConfirmRestore">@L.T("Sustituir y restaurar")</button> } else if (modal == "delete-category") { <button class="button destructive" disabled="@busy" @onclick="RemoveCategory">@L.T("Eliminar categoría")</button> } else { <button class="button destructive" disabled="@busy" @onclick="DeleteMedication">@L.T("Eliminar medicamento")</button> }</div>
+    </section>
+}
+
+
+
+
+

@@ -1,0 +1,14 @@
+.build/
+**/bin/
+**/obj/
+node_modules/
+outputs/
+*.user
+*.db*
+*.keystore
+*.jks
+
+artifacts/
+.vs/
+*.pfx
+*.cer

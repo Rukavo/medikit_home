@@ -1,0 +1,71 @@
+<div class="category-picker" @onkeydown="HandleKey" @onkeydown:stopPropagation="open">
+    <span class="category-picker-label" id="@labelId">@L.T("Categorías")</span>
+    <button type="button" class="category-picker-toggle" aria-labelledby="@labelId @valueId" aria-expanded="@open" aria-controls="@panelId" @onclick="() => open = !open">
+        <span id="@valueId">@(Selected.Count == 0 ? L.T("Seleccionar categorías") : Selected.Count == 1 ? Selected[0] : L.Format("{0} categorías seleccionadas", Selected.Count))</span><span class="category-picker-chevron" aria-hidden="true">⌄</span>
+    </button>
+    @if (Selected.Count > 0)
+    {
+        <div class="category-selected" aria-label="@L.T("Categorías asignadas")">
+            @foreach (var name in Selected)
+            {
+                <span class="tag" @key="name">@name<button type="button" aria-label="@L.Format("Quitar categoría {0}", name)" @onclick="() => Toggle(name, false)"><Icon Name="close" Size="12"/></button></span>
+            }
+        </div>
+    }
+    @if (open)
+    {
+        <div class="category-picker-panel" id="@panelId" role="group" aria-label="@L.T("Seleccionar categorías")">
+            <input type="search" form="category-picker-unbound" aria-label="@L.T("Buscar categoría")" placeholder="@L.T("Buscar categoría…")" @bind="search" @bind:event="oninput"/>
+            <div class="category-options">
+                @foreach (var name in Options)
+                {
+                    <label class="category-option" @key="name"><input type="checkbox" checked="@Selected.Contains(name, StringComparer.OrdinalIgnoreCase)" @onchange="e => Toggle(name, e.Value is true)"/><span>@name</span></label>
+                }
+                @if (!Options.Any()) { <p>@(search.Length == 0 ? L.T("No hay categorías todavía. Puedes crear una aquí.") : L.T("No hay categorías que coincidan."))</p> }
+            </div>
+            <div class="category-create">
+                <label for="@newId">@L.T("Crear una categoría nueva")</label>
+                <div><input id="@newId" form="category-picker-unbound" maxlength="80" placeholder="@L.T("Tu categoría aquí")" @bind="newName" @bind:event="oninput" @onkeydown="CreateOnEnter" @onkeydown:stopPropagation="true"/><button type="button" class="button secondary" disabled="@string.IsNullOrWhiteSpace(newName)" @onclick="Create"><Icon Name="plus" Size="15"/> @L.T("Crear")</button></div>
+                @if (error.Length > 0) { <p class="red-text" role="alert">@error</p> }
+                <small>@L.T("La nueva categoría quedará marcada y se guardará al guardar el medicamento.")</small>
+            </div>
+            <button type="button" class="category-picker-done" @onclick="() => open = false"><Icon Name="check" Size="15"/> @L.T("Listo")</button>
+        </div>
+    }
+</div>
+
+@code {
+    [Parameter] public List<string> Categories { get; set; } = [];
+    [Parameter] public List<string> Selected { get; set; } = [];
+    [Parameter] public EventCallback<List<string>> SelectedChanged { get; set; }
+    private readonly string labelId = "category-label-" + Guid.NewGuid().ToString("N");
+    private readonly string valueId = "category-value-" + Guid.NewGuid().ToString("N");
+    private readonly string panelId = "category-panel-" + Guid.NewGuid().ToString("N");
+    private readonly string newId = "category-new-" + Guid.NewGuid().ToString("N");
+    private readonly List<string> created = [];
+    private bool open;
+    private string newName = "", search = "", error = "";
+    private IEnumerable<string> All => Categories.Concat(created).Concat(Selected).Distinct(StringComparer.OrdinalIgnoreCase).Order(StringComparer.CurrentCultureIgnoreCase);
+    private IEnumerable<string> Options => All.Where(name => CultureInfo.CurrentCulture.CompareInfo.IndexOf(name, search, CompareOptions.IgnoreCase | CompareOptions.IgnoreNonSpace) >= 0);
+    private async Task Toggle(string name, bool select)
+    {
+        var next = Selected.Where(c => !c.Equals(name, StringComparison.OrdinalIgnoreCase)).ToList();
+        if (select) next.Add(name);
+        await SelectedChanged.InvokeAsync(next);
+    }
+    private async Task Create()
+    {
+        error = ""; var name = newName.Trim();
+        if (name.Length == 0 || name.Length > 80 || name.Contains('|')) { error = L.T("Escribe un nombre de hasta 80 caracteres sin el símbolo |."); return; }
+        var existing = All.FirstOrDefault(c => c.Equals(name, StringComparison.OrdinalIgnoreCase));
+        if (existing == null) created.Add(name); else name = existing;
+        await Toggle(name, true); newName = ""; search = "";
+    }
+    private void HandleKey(KeyboardEventArgs e) { if (e.Key == "Escape") open = false; }
+    private Task CreateOnEnter(KeyboardEventArgs e)
+    {
+        if (e.Key == "Escape") open = false;
+        return e.Key == "Enter" ? Create() : Task.CompletedTask;
+    }
+}
+

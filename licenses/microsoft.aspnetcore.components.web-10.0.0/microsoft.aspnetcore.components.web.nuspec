@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Microsoft.AspNetCore.Components.Web</id>
+    <version>10.0.0</version>
+    <authors>Microsoft</authors>
+    <requireLicenseAcceptance>true</requireLicenseAcceptance>
+    <license type="expression">MIT</license>
+    <licenseUrl>https://licenses.nuget.org/MIT</licenseUrl>
+    <icon>Icon.png</icon>
+    <projectUrl>https://asp.net/</projectUrl>
+    <description>Support for rendering ASP.NET Core components for browsers.
+
+This package was built from the source code at https://github.com/dotnet/dotnet/tree/b0f34d51fccc69fd334253924abd8d6853fad7aa</description>
+    <copyright>© Microsoft Corporation. All rights reserved.</copyright>
+    <tags>aspnetcore components</tags>
+    <serviceable>true</serviceable>
+    <repository type="git" url="https://github.com/dotnet/dotnet" commit="b0f34d51fccc69fd334253924abd8d6853fad7aa" />
+    <dependencies>
+      <group targetFramework="net10.0">
+        <dependency id="Microsoft.AspNetCore.Components" version="10.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.AspNetCore.Components.Forms" version="10.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.JSInterop" version="10.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.DependencyInjection" version="10.0.0" exclude="Build,Analyzers" />
+        <dependency id="Microsoft.Extensions.Primitives" version="10.0.0" exclude="Build,Analyzers" />
+      </group>
+    </dependencies>
+  </metadata>
+</package>
