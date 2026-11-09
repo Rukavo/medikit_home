@@ -12,3 +12,5 @@ artifacts/
 .vs/
 *.pfx
 *.cer
+
+Release/

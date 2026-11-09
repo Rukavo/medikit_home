@@ -24,27 +24,24 @@ Instala .NET SDK 10 y la carga `maui-windows`, con las herramientas de Windows S
 dotnet workload install maui-windows
 dotnet run --project tests/MedikitHome.Tests -- .
 dotnet build src/HomePharma
-./tools/Build-Release.ps1 -Version 1.2.0
+./tools/Build-Release.ps1 -Version 1.3.0
 ```
 
-El resultado está en `artifacts/MedikitHome-1.2.0-Windows-x64.zip`, con SHA256SUMS.txt. El script evita reutilizar una carpeta de publicación para no mezclar archivos de versiones anteriores. `src/HomePharma.Core` contiene los datos, CSV y SQLite; `src/HomePharma` contiene la interfaz MAUI/Blazor. Los nombres internos HomePharma se conservan para mantener compatibilidad de datos.
+El resultado está en `artifacts/MedikitHome-1.3.0-Windows-x64.zip`, con SHA256SUMS.txt. El script evita reutilizar una carpeta de publicación para no mezclar archivos de versiones anteriores. `src/HomePharma.Core` contiene los datos, CSV y SQLite; `src/HomePharma` contiene la interfaz MAUI/Blazor. Los nombres internos HomePharma se conservan para mantener compatibilidad de datos.
 
-## Subir a GitHub y crear la primera Release
+## Versión 1.3.0
 
-Sube **el contenido de esta carpeta como raíz del repositorio**. No subas su carpeta contenedora ni el proyecto Android original. `artifacts`, bases locales, claves y resultados de compilación están excluidos.
+Nueva estética inspirada en cajas de medicamentos ilustradas: contornos azul tinta, superficies azul cielo y blanco cálido, y acentos turquesa, ámbar y lavanda. Se conservan los cuatro menús, formularios, filtros, idioma y operaciones de datos. Los colores de las ilustraciones son decorativos; la caducidad y disponibilidad se identifican mediante sus etiquetas.
+
+Descarga la versión publicada desde [Releases](https://github.com/Rukavo/medikit_home/releases/latest). La entrega de Windows no incluye inventarios personales ni Android.
+
+## Publicar futuras versiones
+
+Clona este repositorio y actualiza ApplicationDisplayVersion y ApplicationVersion en el proyecto. Prepara RELEASE_NOTES.md y ejecuta las pruebas y el script de compilación. Tras subir el código, crea una etiqueta que coincida con la versión:
 
 ```powershell
-git init -b main
-git add .
-git commit -m "Medikit Home Windows 1.2.0"
-git remote add origin https://github.com/TU_USUARIO/MedikitHome.git
-git push -u origin main
-git tag -a v1.2.0 -m "Primera Release Windows"
-git push origin v1.2.0
+git tag -a v1.3.0 -m "Medikit Home Windows 1.3.0"
+git push origin v1.3.0
 ```
 
-GitHub Actions compila, prueba y publica el ZIP y su hash al recibir la etiqueta. El flujo también compila los cambios de main y las pull requests sin publicar una Release. Puedes subir manualmente el ZIP compilado y SHA256SUMS.txt a una Release `v1.2.0` si prefieres usar esta compilación local. El flujo remoto requiere Actions habilitado; aún no se ha ejecutado en GitHub.
-
-La versión de la etiqueta debe coincidir con `ApplicationDisplayVersion`. Las futuras versiones deben actualizar también `ApplicationVersion`. La primera Release pública es 1.2.0 para conservar la numeración del desarrollo previo.
-
-Fuentes del procedimiento: [setup-dotnet](https://github.com/actions/setup-dotnet), [GitHub CLI releases](https://cli.github.com/manual/gh_release_create).
+GitHub Actions compila los cambios de main y las pull requests. Las etiquetas v* publican el ZIP y su hash si todavía no existe una Release; si ya existe, se respetan sus archivos publicados. En las próximas versiones cambia el número de la etiqueta antes de ejecutar estos comandos.

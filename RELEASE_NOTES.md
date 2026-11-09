@@ -1,12 +1,15 @@
-# Medikit Home 1.2.0 — primera Release pública para Windows
+# Medikit Home 1.3.0 · Windows
 
-- Interfaz blanca y azul pastel, con estados de stock y caducidad diferenciados.
-- Español e inglés con preferencia persistente.
-- Medicamentos, categorías múltiples y creación de categorías desde la ficha.
-- Tratamientos con horarios y agenda del día.
-- Caducidad, fecha de compra, importación CSV, exportación y copias JSON.
-- SQLite local; distribución sin inventario personal, cuentas ni servidor.
+- Nueva interfaz con iconos ilustrados de cajas de medicamentos y calendarios.
+- Contornos azul tinta, degradados suaves y acentos pastel en turquesa, ámbar y lavanda.
+- Menús, categorías múltiples, filtros, importación, copias y tratamientos conservados.
+- Interfaz en español e inglés con preferencia persistente.
+- Base SQLite local; la distribución pública empieza sin datos personales.
 
-Descarga el ZIP Windows x64, extrae todo y abre MedikitHome.exe. Requiere Windows 10 1809 o Windows 11 y WebView2. Incluye el runtime .NET. Comprueba el archivo SHA256SUMS.txt si deseas verificar la descarga.
+## Instalación
 
-El ejecutable no está firmado con certificado comercial; Windows puede mostrar editor desconocido. Esta edición no envía notificaciones de escritorio y no incluye Android. Las pruebas automatizadas se ejecutaron localmente; el flujo GitHub Actions está preparado, pendiente de su primera ejecución remota.
+Descarga MedikitHome-1.3.0-Windows-x64.zip, extrae **todo** su contenido y abre **MedikitHome.exe**. Requiere Windows 10 1809 o Windows 11, x64, y Microsoft Edge WebView2. Incluye .NET y Windows App SDK. El ZIP source contiene el proyecto de desarrollo; SHA256SUMS permite verificar ambos paquetes.
+
+El ejecutable no tiene firma Authenticode comercial; Windows puede mostrar editor desconocido o SmartScreen. Esta edición de Windows no envía notificaciones de escritorio.
+
+Validación: compilación de Windows completada; 8 comprobaciones del proyecto público, 32 de interfaz y 17 de idioma superadas. La revisión de interfaz usa los componentes Razor compartidos en el entorno local.
